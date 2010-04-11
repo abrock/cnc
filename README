@@ -1,0 +1,1 @@
+The primary goal is to write a piece of software which takes the shapes of a pre-product and a workpiece and calculates the G-Code which makes the CNC-lathe machine the workpiece as fast as possible.
