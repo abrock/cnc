@@ -1,6 +1,6 @@
 camera {
- location <450,500,-900>
- look_at <250,0,0>
+ location <250,900,250>
+ look_at <250,0,250>
 }
 
 global_settings {
@@ -29,11 +29,11 @@ merge {
   <0,0,-w/2>,<w/4,w,w/2>
  }
  box {
-  <0,0,-w/2>,<w,w/4,w/2>
+  <w/4,0,-w/2>,<w,w/4,w/2>
  }
  texture {
   pigment {
-   color <0,255,0>
+   color <0,2,0>
   }
  }
 }
@@ -49,7 +49,7 @@ box {
  <0,0,0>, <xlaenge,w,w>
  texture {
   pigment{
-   color <255,0,0>
+   color <2,0,0>
   }
  }
 }
@@ -57,7 +57,7 @@ box {
  <0,0,-w>, <w,w,xdistance + 3 * w>
  texture {
   pigment {
-   color <0,0,255>
+   color <0,0,2>
   }
  }
 }
@@ -100,10 +100,12 @@ object {
  }
  texture {
   pigment {
-   color <255,255,255>
+   color <2,2,2>
   }
  }
 }
+
+#declare xpos = 2*w;
 
 #declare schlitten =
 union {
@@ -122,7 +124,7 @@ union {
   }
   texture {
    pigment {
-    color <255,255,0>
+    color <2,2,0>
    }
   }
  }
@@ -136,7 +138,12 @@ union {
 
 object {
  schlitten
- translate <w,0,0>
+ translate <xpos,0,0>
+}
+
+object {
+ schlitten
+ translate <xpos,0,xdistance + w>
 }
 
 // Verbindung x-Achse links
@@ -200,6 +207,25 @@ object {
  #declare winkelcount = winkelcount + 1;
  rotate <90,0,180>
  translate <xlaenge,w/2,xdistance + 2*w>
+}
+
+#declare yachse = union {
+ box {
+  <-w,w,-w>,<0,2*w,xdistance + 3 * w>
+ }
+ box {
+  <2*w,w,-w>,<3*w,2*w,xdistance + 3 * w>
+ }
+ texture {
+  pigment {
+   color rgb <0,0,2>
+  }
+ }
+}
+
+object {
+ yachse
+ translate <xpos,0,0>
 }
 
 // Rest
