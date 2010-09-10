@@ -28,13 +28,23 @@ class point {
 	}
 	
 	/*!
+		\brief Copy an existing point
+		
+		\param newPoint 
+	*/
+	void set(point<T>& newPoint) {
+		z = newPoint.z;
+		x = newPoint.x;
+	}
+	
+	/*!
 		\brief Set the coordinates to the maximum of the current coordinates and the coordinates of the given point
 		
 		\param comp Point to compare with
 	*/
 	void setMax(point<T>& comp) {
-		z = max(z, comp.z);
-		x = max(x, comp.x);
+		z = max(z, comp.z + 0.1);
+		x = max(x, comp.x + 0.1);
 	}
 	
 	/*!
@@ -43,12 +53,71 @@ class point {
 		\param comp Point to compare with
 	*/
 	void setMin(point<T>& comp) {
-		z = min(z, comp.z);
-		x = min(x, comp.x);
+		z = min(z, comp.z - 0.1);
+		x = min(x, comp.x - 0.1);
 	}
 	
 	T x;
 	T z;
+};
+
+template<class T>
+point<T> operator + (point<T>& one, point<T>& two) {
+	return point<T>(one.z + two.z, one.x + two.x);
+}
+
+template<class T>
+point<T> operator - (point<T> one, point<T> two) {
+	return point<T>(one.z - two.z, one.x - two.x);
+}
+
+template<class T>
+point<T> operator * (T scalar, point<T>& mul) {
+	return point<T>(mul.z * scalar, mul.x * scalar);
+}
+
+template<class T>
+class line {
+	public:
+	
+	line() {
+	}
+	
+	/*!
+		\brief Set beginning and end of the line
+		
+		\param start Beginning of the line
+		\param stop End of the line
+	*/
+	void set(point<T> start, point<T> stop) {
+		(*this).start.set(start);
+		(*this).stop.set(stop);
+	}
+	
+	/*!
+		Get a point on the line
+		
+		\param scalar location of the point, e.g. 0 for startpoint
+		or 0.5 for point in the middle between start and end.
+	*/
+	point<T> param(T scalar) {
+		return point<T>(start + (stop-start)*scalar);
+	}
+	
+	bool intersection(line<T>& comp, T& position) {
+		
+		// Construct the left side of a linear equation
+		point<T>one(stop - start);
+		point<T>two(comp.start - comp.stop);
+		
+		// Construct the right side
+		point<T>right(comp.start - start);
+		
+		return false;
+	}
+	
+	// Beginning and end of the line
+	point<T> start, stop;
 };
 
 template<class T>
@@ -123,12 +192,14 @@ class lathe {
 		
 	*/
 	void invokeGnuplot() {
+	
+		gnuplot();
 		stringstream command;
 	
 		command	<< " gnuplot -e \"set terminal svg;"
 						<< "set output 'plot.svg';"
-						<< "set xrange[" << minimum.z - 0.1 << ":" << maximum.z + 0.1 << "];"
-						<< "set yrange[" << maximum.x+0.1 << ":" << minimum.z - 0.1 << "];"
+						<< "set xrange[" << minimum.z << ":" << maximum.z << "];"
+						<< "set yrange[" << maximum.x << ":" << minimum.z << "];"
 						<< "plot 'source.data' title 'Source' with lines, 'dest.data' title 'Destination' with lines;\"";
 		system(command.str().c_str());
 		//cout << command.str();
@@ -146,17 +217,7 @@ class lathe {
 		}
 	}
 
-	/*!
-		\brief Stuff the contents of a vector into a stream
-		
-		\param out stream to stuff things into
-		\param vec vector
-	*/
-	void vectorOut(ostream& out, vector<T>& vec) {
-		for (class vector<T>::iterator it = vec.begin(); it != vec.end(); it++) {
-			out << (*it) << " ";
-		}
-	}
+	
 
 	private:
 
@@ -185,7 +246,8 @@ int main(void) {
 	test.addPoint(false, 1.0, 1.0);
 	test.addPoint(false, 1.0, 0.0);
 
-	test.gnuplot();
+	
+
 	test.invokeGnuplot();
 
 	return 0;
