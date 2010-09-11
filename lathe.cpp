@@ -28,6 +28,10 @@ class lathe {
 
 	void run() {
 		intersections();
+		
+		invokeGnuplot();
+		
+		gCode();
 	}
 	
 	/*!
@@ -48,12 +52,12 @@ class lathe {
 			return;
 		}
 	
-		for (double x = maximum.x; x > minimum.x; x -= step) {
+		for (double x = maximum.x; x >= minimum.x; x -= step) {
 			machine.set(maximum.z, x, minimum.z, x);
 			intersections(source, machine, true, hits);
 			intersections(dest, machine, false, hits);
 			
-			hit<T>::display(crosses, machine, hits);
+			//hit<T>::display(crosses, machine, hits);
 			
 			makelines(machine, hits);
 			
@@ -71,6 +75,15 @@ class lathe {
 		line<T>::display(linesFile, lines);
 		
 		linesFile.close();
+	}
+	
+	/*!
+		Generate G-Code
+	*/
+	void gCode() {
+		list<point<T> > maxima;
+		
+		getLocalMaxima(dest, maxima);
 	}
 	
 	/*!
@@ -190,10 +203,25 @@ class lathe {
 						<< "set output 'plot.svg';"
 						<< "set xrange[" << minimum.z << ":" << maximum.z << "];"
 						<< "set yrange[" << maximum.x << ":" << minimum.z << "];"
-						<< "plot 'source.data' title 'Source' with lines, 'dest.data' title 'Destination' with lines, 'crosses.data', 'lines.data' with lines;\"";
+						<< "plot 'source.data' title 'Source' with lines, 'dest.data' title 'Destination' with lines, 'crosses.data', 'lines.data' title 'Lines' with lines;\"";
 		system(command.str().c_str());
 		//cout << command.str();
-	} 
+	}
+	
+	/*!
+		Get the local maxima of a shape.
+		
+		\param shape Shape
+		\param maxima list of the local maxima
+	*/
+	void getLocalMaxima(vector<point<T> >& shape, list<point<T> > maxima) {
+		for (unsigned int i = 1; i < shape.size()-1; i++) {
+			if (shape[i-1].x < shape[i].x && shape[i+1].x < shape[i].x) {
+				maxima.push_back(shape[i]);
+				cout << shape[i] << endl;
+			}
+		}
+	}
 
 	/*!
 		\brief Stuff the contents of a vector of points into a stream
@@ -230,6 +258,11 @@ class lathe {
 	
 	// Lines to execute
 	list<line<T> > lines;
+	
+	// G1-Speed for the lathe
+	T g1;
+	
+	// 
 };
 
 int main(void) {
@@ -262,12 +295,12 @@ int main(void) {
 	test.addPoint(true, 5.0, 2.7);
 	test.addPoint(true, 6.0, 3.0);
 	test.addPoint(true, 7.0, 0.0);
+	test.addPoint(true, 9.0, 5.0);
+	test.addPoint(true, 11.0, 0.0);
 	
 	
 	test.run();
 
-	test.invokeGnuplot();
-	
 	cout	<< "Program execution took " << time(0) - start << "s ("
 				<< (clock() - startClock) / (double)(CLOCKS_PER_SEC/1000) << "ms)"
 				<< endl;
