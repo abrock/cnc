@@ -7,131 +7,121 @@
 
 using namespace std;
 
-template<class T>
-class point {
-	public:
-	
-	point() {
-		z = 0.0;
-		x = 0.0;
-	}
-	
-	/*!
-		\brief set the coordinates of the point
-		
-		\param x T x
-		\param z T z
-	*/
-	void set(T z, T x) {
-		(*this).z = z;
-		(*this).x = x;
-	}
-	
-	/*!
-		\brief Copy an existing point
-		
-		\param newPoint 
-	*/
-	void set(point<T>& newPoint) {
-		z = newPoint.z;
-		x = newPoint.x;
-	}
-	
-	/*!
-		\brief Set the coordinates to the maximum of the current coordinates and the coordinates of the given point
-		
-		\param comp Point to compare with
-	*/
-	void setMax(point<T>& comp) {
-		z = max(z, comp.z + 0.1);
-		x = max(x, comp.x + 0.1);
-	}
-	
-	/*!
-		\brief Set the coordinates to the minimum of the current coordinates and the coordinates of the given point
-		
-		\param comp Point to compare with
-	*/
-	void setMin(point<T>& comp) {
-		z = min(z, comp.z - 0.1);
-		x = min(x, comp.x - 0.1);
-	}
-	
-	T x;
-	T z;
-};
+#include "point.h"
+
+#include "line.h"
+
+#include "hit.h"
 
 template<class T>
-point<T> operator + (point<T>& one, point<T>& two) {
-	return point<T>(one.z + two.z, one.x + two.x);
+bool inIntervall(T value, T start, T stop) {
+	return (value >= start && value <= stop) || (value <= start && value >= stop);
 }
-
-template<class T>
-point<T> operator - (point<T> one, point<T> two) {
-	return point<T>(one.z - two.z, one.x - two.x);
-}
-
-template<class T>
-point<T> operator * (T scalar, point<T>& mul) {
-	return point<T>(mul.z * scalar, mul.x * scalar);
-}
-
-template<class T>
-class line {
-	public:
-	
-	line() {
-	}
-	
-	/*!
-		\brief Set beginning and end of the line
-		
-		\param start Beginning of the line
-		\param stop End of the line
-	*/
-	void set(point<T> start, point<T> stop) {
-		(*this).start.set(start);
-		(*this).stop.set(stop);
-	}
-	
-	/*!
-		Get a point on the line
-		
-		\param scalar location of the point, e.g. 0 for startpoint
-		or 0.5 for point in the middle between start and end.
-	*/
-	point<T> param(T scalar) {
-		return point<T>(start + (stop-start)*scalar);
-	}
-	
-	bool intersection(line<T>& comp, T& position) {
-		
-		// Construct the left side of a linear equation
-		point<T>one(stop - start);
-		point<T>two(comp.start - comp.stop);
-		
-		// Construct the right side
-		point<T>right(comp.start - start);
-		
-		return false;
-	}
-	
-	// Beginning and end of the line
-	point<T> start, stop;
-};
-
-template<class T>
-inline ostream& operator<< (ostream& out, const point<T>& p) {
-	return out << p.z << " " << p.x;
-}
-
 
 template<class T>
 class lathe {
 	public:
 
 	lathe() {
+		step = 0.1;
+	}
 
+	void run() {
+		intersections();
+	}
+	
+	/*!
+		Calculate intersections between lines, 
+	*/
+	void intersections() {
+	
+		// A list of the hits
+		list<hit<T> > hits;
+		
+		// a 
+		line<T> machine;
+	
+		fstream crosses;
+		crosses.open("crosses.data", fstream::out);
+		if (!crosses.is_open()) {
+			cout << "couldn't open crosses.data" << endl;
+			return;
+		}
+	
+		for (double x = maximum.x; x > minimum.x; x -= step) {
+			machine.set(maximum.z, x, minimum.z, x);
+			intersections(source, machine, true, hits);
+			intersections(dest, machine, false, hits);
+			
+			hit<T>::display(crosses, machine, hits);
+			
+			makelines(machine, hits);
+			
+			hits.clear();
+		}
+		crosses.close();
+		
+		fstream linesFile;
+		linesFile.open("lines.data", fstream::out);
+		if (!linesFile.is_open()) {
+			cout << "couldn't open lines.data" << endl;
+			return;
+		}
+		
+		line<T>::display(linesFile, lines);
+		
+		linesFile.close();
+	}
+	
+	/*!
+		Calculate the lines which must be executed by the machine
+		
+		\param machine line to execute
+		\param hits list of hits between the line and the shapes
+	*/
+	void makelines(line<T>& machine, list<hit<T> >& hits) {
+		hits.sort();
+		bool inSource = false;
+		bool inDest = false;
+		bool lineStarted = false;
+		point<T> start;
+		for (class list<hit<T> >::iterator it = hits.begin(); it != hits.end(); it++) {
+			if ((*it).source) {
+				inSource = !inSource;
+			}
+			else {
+				inDest = !inDest;
+			}
+			if (inSource && !inDest && !lineStarted) {
+				lineStarted = true;
+				start = machine.param((*it).param);
+			}
+			if ((inDest || !inSource) && lineStarted) {
+				lineStarted = false;
+				lines.push_back(line<T>(start, machine.param((*it).param)));
+			}
+		}
+	}
+	
+	
+	
+	/*!
+		Calculate the intersections between a shape and a line.
+		
+		\param shape Shape to calculate intersections with
+		\param machine Line the machine will execute
+		\param source true if it is a source shape, false for a destination shape
+		\param hits List of the hits found.
+	*/
+	void intersections(vector<point<T> >& shape, line<T>& machine, bool source, list<hit<T> >& hits) {
+		T param;
+		line<T> shapeLine;
+		for (class vector<point<T> >::iterator it = shape.begin(); it != shape.end(); it++) {
+			shapeLine.set(*it, *(it+1));
+			if (machine.intersection(shapeLine, param)) {
+				hits.push_back(hit<T>(source, param));
+			}
+		}
 	}
 
 	/*!
@@ -200,7 +190,7 @@ class lathe {
 						<< "set output 'plot.svg';"
 						<< "set xrange[" << minimum.z << ":" << maximum.z << "];"
 						<< "set yrange[" << maximum.x << ":" << minimum.z << "];"
-						<< "plot 'source.data' title 'Source' with lines, 'dest.data' title 'Destination' with lines;\"";
+						<< "plot 'source.data' title 'Source' with lines, 'dest.data' title 'Destination' with lines, 'crosses.data', 'lines.data' with lines;\"";
 		system(command.str().c_str());
 		//cout << command.str();
 	} 
@@ -216,6 +206,8 @@ class lathe {
 			out << (*it) << endl;
 		}
 	}
+	
+	
 
 	
 
@@ -232,12 +224,21 @@ class lathe {
 	
 	// Minimum dimension of source and dest
 	point<T> minimum;
+	
+	// depth of a single step
+	T step;
+	
+	// Lines to execute
+	list<line<T> > lines;
 };
 
 int main(void) {
+	time_t start = time(0);
+	clock_t startClock = clock();
 
 	lathe<double> test;
 
+	/*
 	test.addPoint(true, 0.0, 0.0);
 	test.addPoint(true, 0.0, 1.0);
 	test.addPoint(true, 1.0, 0.0);
@@ -245,10 +246,31 @@ int main(void) {
 	test.addPoint(false, 0.0, 1.0);
 	test.addPoint(false, 1.0, 1.0);
 	test.addPoint(false, 1.0, 0.0);
-
+	*/
 	
+	test.addPoint(false, 0.0, 0.0);
+	test.addPoint(false, 0.0, 4.0);
+	test.addPoint(false, 8.0, 4.0);
+	test.addPoint(false, 8.0, 0.0);
+	
+	test.addPoint(true, 0.0, 0.0);
+	test.addPoint(true, 0.0, 1.0);
+	test.addPoint(true, 1.0, 1.0);
+	test.addPoint(true, 2.0, 1.2);
+	test.addPoint(true, 3.0, 1.5);
+	test.addPoint(true, 4.0, 2.0);
+	test.addPoint(true, 5.0, 2.7);
+	test.addPoint(true, 6.0, 3.0);
+	test.addPoint(true, 7.0, 0.0);
+	
+	
+	test.run();
 
 	test.invokeGnuplot();
+	
+	cout	<< "Program execution took " << time(0) - start << "s ("
+				<< (clock() - startClock) / (double)(CLOCKS_PER_SEC/1000) << "ms)"
+				<< endl;
 
 	return 0;
 }
