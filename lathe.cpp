@@ -3,6 +3,7 @@
 #include <sstream>
 #include <list>
 #include <vector>
+#include <ctime>
 #include <cstdlib>
 
 using namespace std;
@@ -199,11 +200,12 @@ class lathe {
 		gnuplot();
 		stringstream command;
 	
-		command	<< " gnuplot -e \"set terminal svg;"
+		command	<< "gnuplot -e \"set terminal svg;"
 						<< "set output 'plot.svg';"
 						<< "set xrange[" << minimum.z << ":" << maximum.z << "];"
 						<< "set yrange[" << maximum.x << ":" << minimum.z << "];"
-						<< "plot 'source.data' title 'Source' with lines, 'dest.data' title 'Destination' with lines, 'crosses.data', 'lines.data' title 'Lines' with lines;\"";
+						<< "plot 'source.data' title 'Source' with lines, 'dest.data' title 'Destination' with lines"
+						<< gnuplotCommand.str() << ";\" ";
 		system(command.str().c_str());
 		//cout << command.str();
 	}
@@ -262,7 +264,8 @@ class lathe {
 	// G1-Speed for the lathe
 	T g1;
 	
-	// 
+	// gnuplot-command
+	stringstream gnuplotCommand;
 };
 
 int main(void) {
@@ -282,9 +285,9 @@ int main(void) {
 	*/
 	
 	test.addPoint(false, 0.0, 0.0);
-	test.addPoint(false, 0.0, 4.0);
-	test.addPoint(false, 8.0, 4.0);
-	test.addPoint(false, 8.0, 0.0);
+	test.addPoint(false, 0.0, 6.0);
+	test.addPoint(false, 12.0, 6.0);
+	test.addPoint(false, 12.0, 0.0);
 	
 	test.addPoint(true, 0.0, 0.0);
 	test.addPoint(true, 0.0, 1.0);
