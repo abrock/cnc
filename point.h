@@ -40,12 +40,13 @@ class point {
 		x = newPoint.x;
 	}
 	
+
 	/*!
 		\brief Set the coordinates to the maximum of the current coordinates and the coordinates of the given point
 		
 		\param comp Point to compare with
 	*/
-	void setMax(point<T>& comp) {
+	void setMax(point<T> comp) {
 		z = max(z, comp.z + 0.1);
 		x = max(x, comp.x + 0.1);
 	}
@@ -55,27 +56,37 @@ class point {
 		
 		\param comp Point to compare with
 	*/
-	void setMin(point<T>& comp) {
+	void setMin(point<T> comp) {
 		z = min(z, comp.z - 0.1);
 		x = min(x, comp.x - 0.1);
 	}
 	
+	void gCodePoint(ostream& out) {
+		out << " z" << z << " x" << x << " ";
+	}
+	
 	T x;
 	T z;
+	
+	point<T>& operator-=(const point<T>& two) {
+		z -= two.z;
+		x -= two.x;
+		return *this;
+	}
 };
 
 template<class T>
-point<T> operator + (point<T> one, point<T> two) {
+inline point<T> operator + (const point<T> one, const point<T> two) {
 	return point<T>(one.z + two.z, one.x + two.x);
 }
 
 template<class T>
-point<T> operator - (point<T> one, point<T> two) {
+inline point<T> operator - (const point<T> one, const point<T> two) {
 	return point<T>(one.z - two.z, one.x - two.x);
 }
 
 template<class T>
-point<T> operator * (T scalar, point<T> mul) {
+inline point<T> operator * (const T scalar, const point<T> mul) {
 	return point<T>(mul.z * scalar, mul.x * scalar);
 }
 

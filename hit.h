@@ -6,6 +6,7 @@ class hit {
 	
 	T param;
 	bool source;
+	unsigned int index;
 	
 	hit() {
 		source = true;
@@ -18,8 +19,8 @@ class hit {
 		\param true for source, false for destination
 		\param param Parameter of the hit.
 	*/
-	hit(bool source, T param) {
-		set(source, param);
+	hit(bool source, T param, unsigned int index) {
+		set(source, param, index);
 	}
 
 	
@@ -29,9 +30,10 @@ class hit {
 		\param true for source, false for destination
 		\param param Parameter of the hit.
 	*/
-	void set(bool source, T param) {
+	void set(bool source, T param, unsigned int index) {
 		(*this).source = source;
 		(*this).param = param;
+		(*this).index = index;
 	}
 	
 	void display(ostream& out, line<T>& machine) {
