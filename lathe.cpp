@@ -18,6 +18,11 @@ class line;
 
 #include "line.h"
 
+template<class T>
+T abs(point<T> myPoint) {
+  return sqrt(myPoint.z*myPoint.z + myPoint.x*myPoint.x);
+}
+
 
 template<class T>
 bool inIntervall(T value, T start, T stop) {
@@ -49,8 +54,10 @@ class lathe {
 	public:
 
 	lathe() {
-		step = 0.05;
+		step = 1.0;
 		linesIndex = 0;
+		g0way = 0.0;
+		g1way = 0.0;
 	}
 
 	void run() {
@@ -178,6 +185,7 @@ class lathe {
 			firstRun = true;
 			for (class list<line<T> >::iterator it = lines.begin(); ; it++) {
 				if (it == lines.end()) {
+					makeOutlineNut((*last), gCode, gCodeData, lastZ);
 					moveTo(gCode, gCodeData, point<T>(lastZ, maximum.x), true);
 					break;
 				}
@@ -211,7 +219,7 @@ class lathe {
 						moveTo(gCode, gCodeData, point<T>((*it).start.z, maximum.x), true);
 					}
 					file << (*it) << endl;
-					gCodeLine(gCode, gCodeData, (*it));
+					gCodeLine(gCode, gCodeData, (*it), firstRun);
 					(*it).active = false;
 					finishedLine = true;
 					last = it;
@@ -228,10 +236,17 @@ class lathe {
 			}
 		}
 		file.close();
+		
+		cout << "G0: " << g0way << endl << "G1: " << g1way << endl;
 	}
 	
 	bool sameNut(line<T> current, line<T> previous) {
+    /*
+    if (!current.startSource && current.stopSource) {
+      return true;
+    }
 		if (!previous.startSource && !current.stopSource && previous.startIndex < current.stopIndex) {
+			cout << "fail" << endl;
 			return false;
 		}
 		if (current.startSource && current.stopSource) {
@@ -243,15 +258,66 @@ class lathe {
 		if (previous.startSource && previous.stopSource) {
 			return true;
 		}
+		*/
+		
+		// both lines start and stop with destination points
+		if (
+			!current.startSource && !previous.startSource &&
+			!current.stopSource && !previous.stopSource
+		) {
+			if (previous.startIndex >= current.startIndex && previous.stopIndex <= current.stopIndex) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		if (current.startSource && current.stopSource) {
+			return true;
+		}
+		if (current.stopSource && previous.stopSource) {
+			return true;
+		}
 
 		return false;
+	}
+	
+	void makeOutlineNut(line<T>& last, ostream& gCode, ostream& gCodeData, T& lastZ) {
+		T lastX = last.stop.x;
+		unsigned int index = last.stopIndex-1;
+		while(index >= 0) {
+			if (lastX > dest[index].x) {
+				lastZ = dest[index].z;
+				return;
+			}
+			moveTo(gCode, gCodeData, dest[index], false);
+			lastX = dest[index].x;
+			index--;
+		}
+		lastZ = dest[index].z;
+	}
+	
+	void diveIntoNut(line<T>& last, ostream& gCode, ostream& gCodeData) {
+		unsigned int index = last.startIndex;
+		while (dest[index].x >= last.start.x - step) {
+			moveTo(gCode, gCodeData, dest[index], false);
+			cout << dest[index];
+			index--;
+			if (dest[index].x <= last.start.x) {
+				return;
+			}
+		}
 	}
 	
 	/*!
 		Generate a 
 	*/
-	void gCodeLine(ostream& ngc, ostream& data, line<T>& myLine) {
-		moveTo(ngc, data, myLine.start, true);
+	void gCodeLine(ostream& ngc, ostream& data, line<T>& myLine, bool firstRun) {
+		moveTo(ngc, data, point<T>(myLine.start.z, myLine.start.x + step), true);
+		if (!myLine.startSource) {
+			diveIntoNut(myLine, ngc, data);
+		}
+		moveTo(ngc, data, myLine.start, false);
 		moveTo(ngc, data, myLine.stop, false);
 	}
 	
@@ -259,12 +325,15 @@ class lathe {
 		data << dest << endl;
 		if (g0) {
 			ngc << "G0 ";
+			g0way += abs(lastPoint-dest);
 		}
 		else {
 			ngc << "G1 ";
+			g1way += abs(lastPoint-dest);
 		}
 		dest.gCodePoint(ngc);
 		ngc << endl;
+		lastPoint.set(dest);
 	}
 	
 	/*!
@@ -451,11 +520,11 @@ class lathe {
 	
 	void testPlot() {
 		T start = 0.0;
-		T stop = 18.0;
+		T stop = 80.0;
 		T step = 0.01;
 	
 		for (T z = start; z <= stop; z += step) {
-			addPoint(true, z, 2.0 + sin(2*z) + sin(0.5*z));
+			addPoint(true, z, 8.0 + 3*sin(0.5*z) + 3*sin(0.25*z));
 		}
 		addPoint(true, stop, 0.0);
 	}
@@ -490,6 +559,11 @@ class lathe {
 	//
 	int linesIndex;
 	
+	T g0way;
+	T g1way;
+	
+	point<T> lastPoint;
+	
 };
 
 int main(void) {
@@ -509,23 +583,16 @@ int main(void) {
 	*/
 	
 	test.addPoint(false, 0.0, 0.0);
-	test.addPoint(false, 0.0, 6.0);
-	test.addPoint(false, 18.0, 6.0);
-	test.addPoint(false, 18.0, 0.0);
+	test.addPoint(false, 0.0, 30.0);
+	test.addPoint(false, 80.0, 30.0);
+	test.addPoint(false, 80.0, 0.0);
 
 /*	
 	test.addPoint(true, 0.0, 0.0);
-	test.addPoint(true, 0.0, 1.0);
-	test.addPoint(true, 1.0, 1.0);
-	test.addPoint(true, 2.0, 1.2);
-	test.addPoint(true, 3.0, 1.5);
-	test.addPoint(true, 4.0, 2.0);
-	test.addPoint(true, 5.0, 2.7);
-	test.addPoint(true, 6.0, 3.0);
-	test.addPoint(true, 7.0, 0.0);
-	test.addPoint(true, 9.0, 5.0);
-	test.addPoint(true, 11.0, 0.0);
-	*/
+	test.addPoint(true, 0.0, 7.5);
+	test.addPoint(true, 80.0, 20.0);
+	test.addPoint(true, 80.0, 0.0);
+	//*/
 	test.testPlot();
 	
 	test.run();
