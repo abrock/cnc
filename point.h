@@ -89,6 +89,10 @@ template<class T>
 inline point<T> operator * (const T scalar, const point<T> mul) {
 	return point<T>(mul.z * scalar, mul.x * scalar);
 }
+template<class T>
+inline point<T> operator * (const point<T> mul, const T scalar) {
+	return scalar * mul;
+}
 
 template<class T>
 inline ostream& operator<< (ostream& out, const point<T>& p) {

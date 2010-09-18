@@ -14,6 +14,8 @@ class line;
 
 #include "point.h"
 
+#include "bezier.h"
+
 #include "hit.h"
 
 #include "line.h"
@@ -46,6 +48,14 @@ string stringify(T x) {
 void open(fstream& file, const string filename, bool out) {
 	file.open(filename.c_str(), out ? fstream::out : fstream::in);
 }
+
+void open(fstream& file, const string filename, int counter, bool out) {
+	file.close();
+	stringstream name;
+	name << filename << counter << ".data";
+	file.open(name.str().c_str(), out ? fstream::out : fstream::in);
+}
+
 
 
 
@@ -85,7 +95,7 @@ class lathe {
 		// A list of the hits
 		list<hit<T> > hits;
 		
-		// a 
+		// the current line
 		line<T> machine;
 	
 		fstream crosses;
@@ -126,7 +136,8 @@ class lathe {
 	*/
 	void gCode() {
 		fstream gCodeData;
-		gCodeData.open("gcode.data", fstream::out);
+		int gcodeCounter = 0;
+		open(gCodeData, "gcode", gcodeCounter, true);
 		if (!gCodeData.is_open()) {
 			cout << "couldn't open file gcode.data" << endl;
 			return;
@@ -161,8 +172,9 @@ class lathe {
 		
 		bool firstRun = true;
 		
-		T lastHeight = 0.0;
+		//T lastHeight = 0.0;
 		T lastZ = 0.0;
+		
 		
 		while(!finished) {
 			if (file.is_open()) {
@@ -186,7 +198,12 @@ class lathe {
 			for (class list<line<T> >::iterator it = lines.begin(); ; it++) {
 				if (it == lines.end()) {
 					makeOutlineNut((*last), gCode, gCodeData, lastZ);
-					moveTo(gCode, gCodeData, point<T>(lastZ, maximum.x), true);
+					//moveTo(gCode, gCodeData, point<T>(lastZ, maximumDest.x), true);
+					gcodeCounter++;
+					open(gCodeData, "gcode", gcodeCounter, true);
+					gcodeCommand << ", 'gcode" << gcodeCounter << ".data' title '' with lines";
+					
+					gCodeData << endl;
 					break;
 				}
 
@@ -216,7 +233,7 @@ class lathe {
 				
 				if ((sameNut((*it), (*last)) || firstRun) && (*it).active) {
 					if (firstRun) {
-						moveTo(gCode, gCodeData, point<T>((*it).start.z, maximum.x), true);
+						//moveTo(gCode, gCodeData, point<T>((*it).start.z, maximumDest.x), true);
 					}
 					file << (*it) << endl;
 					gCodeLine(gCode, gCodeData, (*it), firstRun);
@@ -235,6 +252,9 @@ class lathe {
 				lastX = (*it).start.x;
 			}
 		}
+		
+		finish(gCode, gCodeData);
+		
 		file.close();
 		
 		cout << "G0: " << g0way << endl << "G1: " << g1way << endl;
@@ -315,7 +335,7 @@ class lathe {
 	void gCodeLine(ostream& ngc, ostream& data, line<T>& myLine, bool firstRun) {
 		moveTo(ngc, data, point<T>(myLine.start.z, myLine.start.x + step), true);
 		if (!myLine.startSource) {
-			diveIntoNut(myLine, ngc, data);
+			//diveIntoNut(myLine, ngc, data);
 		}
 		moveTo(ngc, data, myLine.start, false);
 		moveTo(ngc, data, myLine.stop, false);
@@ -334,6 +354,10 @@ class lathe {
 		dest.gCodePoint(ngc);
 		ngc << endl;
 		lastPoint.set(dest);
+	}
+
+	void moveTo(ostream& ngc, ostream& data, T destZ, T destX, bool g0) {
+		moveTo(ngc, data, point<T>(destZ, destX), g0);
 	}
 	
 	/*!
@@ -363,7 +387,9 @@ class lathe {
 			}
 			if ((inDest || !inSource) && lineStarted) {
 				lineStarted = false;
-				lines.push_back(line<T>(start, machine.param((*it).param), startHit, (*it)));
+				if (abs(start - machine.param((*it).param)) != 0.0) {
+					lines.push_back(line<T>(start, machine.param((*it).param), startHit, (*it)));
+				}
 			}
 		}
 	}
@@ -411,6 +437,7 @@ class lathe {
 		minimum.setMin(newPoint);
 		if (destination) {
 			dest.push_back(newPoint);
+			maximumDest.setMax(newPoint);
 		}
 		else {
 			source.push_back(newPoint);
@@ -485,9 +512,22 @@ class lathe {
 						<< "set output 'gcode.svg';"
 						<< "set xrange[" << minimum.z << ":" << maximum.z << "];"
 						<< "set yrange[" << maximum.x << ":" << minimum.z << "];"
-						<< "plot 'gcode.data' title '' with lines;\" ";
+						<< "plot 'gcode0.data' title '' with lines"
+						<< gcodeCommand.str() << ";\"";
 		system(command.str().c_str());
 		//cout << command.str();
+	}
+	
+	/*!
+		Make the final surface.
+	*/
+	void finish(ostream& gCode, ostream& gCodeData) {
+		moveTo(gCode, gCodeData, lastPoint.z, maximumDest.x, true);
+		moveTo(gCode, gCodeData, maximumDest.z, maximumDest.x, true);
+		moveTo(gCode, gCodeData, maximumDest.z, dest[dest.size()-1].x+2*step, true);
+		for (unsigned int i = dest.size() - 1; i <= dest.size(); i--) {
+			moveTo(gCode, gCodeData, dest[i], false);
+		}
 	}
 	
 	/*!
@@ -541,6 +581,9 @@ class lathe {
 	// Maximum dimension of source and dest
 	point<T> maximum;
 	
+	// Maximum dimension of dest
+	point<T> maximumDest;
+	
 	// Minimum dimension of source and dest
 	point<T> minimum;
 	
@@ -555,6 +598,9 @@ class lathe {
 	
 	// gnuplot-command
 	stringstream gnuplotCommand;
+	
+	// gnuplot-command for gcode.svg
+	stringstream gcodeCommand;
 	
 	//
 	int linesIndex;
