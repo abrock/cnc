@@ -99,9 +99,9 @@ class lathe {
 		line<T> machine;
 	
 		fstream crosses;
-		crosses.open("crosses.data", fstream::out);
+		crosses.open("data/crosses.data", fstream::out);
 		if (!crosses.is_open()) {
-			cout << "couldn't open crosses.data" << endl;
+			cout << "couldn't open data/crosses.data" << endl;
 			return;
 		}
 	
@@ -119,9 +119,9 @@ class lathe {
 		crosses.close();
 		
 		fstream linesFile;
-		linesFile.open("lines.data", fstream::out);
+		linesFile.open("data/lines.data", fstream::out);
 		if (!linesFile.is_open()) {
-			cout << "couldn't open lines.data" << endl;
+			cout << "couldn't open data/lines.data" << endl;
 			return;
 		}
 		
@@ -137,9 +137,9 @@ class lathe {
 	void gCode() {
 		fstream gCodeData;
 		int gcodeCounter = 0;
-		open(gCodeData, "gcode", gcodeCounter, true);
+		open(gCodeData, "data/gcode", gcodeCounter, true);
 		if (!gCodeData.is_open()) {
-			cout << "couldn't open file gcode.data" << endl;
+			cout << "couldn't open file data/gcode0.data" << endl;
 			return;
 		}
 	
@@ -182,12 +182,12 @@ class lathe {
 				linesIndex++;
 			}
 			
-			open(file, "lines_" + stringify(linesIndex) + ".data", true);
+			open(file, "data/lines_" + stringify(linesIndex) + ".data", true);
 			if (!file.is_open()) {
-				cout << "couldn't open file lines_" + stringify(linesIndex) + ".data" << endl;
+				cout << "couldn't open file data/lines_" + stringify(linesIndex) + ".data" << endl;
 				return;
 			}
-			gnuplotCommand << ", 'lines_" + stringify(linesIndex) + ".data' title '' with lines";
+			gnuplotCommand << ", 'data/lines_" + stringify(linesIndex) + ".data' title '' with lines";
 			cout << ++counter << endl;
 			if (counter > 100) {
 				break;
@@ -200,8 +200,8 @@ class lathe {
 					makeOutlineNut((*last), gCode, gCodeData, lastZ);
 					//moveTo(gCode, gCodeData, point<T>(lastZ, maximumDest.x), true);
 					gcodeCounter++;
-					open(gCodeData, "gcode", gcodeCounter, true);
-					gcodeCommand << ", 'gcode" << gcodeCounter << ".data' title '' with lines";
+					open(gCodeData, "data/gcode", gcodeCounter, true);
+					gcodeCommand << ", 'data/gcode" << gcodeCounter << ".data' title '' with lines";
 					
 					gCodeData << endl;
 					break;
@@ -512,7 +512,7 @@ class lathe {
 						<< "set output 'gcode.svg';"
 						<< "set xrange[" << minimum.z << ":" << maximum.z << "];"
 						<< "set yrange[" << maximum.x << ":" << minimum.z << "];"
-						<< "plot 'gcode0.data' title '' with lines"
+						<< "plot 'data/gcode0.data' title '' with lines"
 						<< gcodeCommand.str() << ";\"";
 		system(command.str().c_str());
 		//cout << command.str();
