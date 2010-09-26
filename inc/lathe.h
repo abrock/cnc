@@ -65,7 +65,7 @@ class lathe {
 	public:
 
 	lathe() {
-		step = 1.0;
+		step = 0.5;
 		linesIndex = 0;
 		g0way = 0.0;
 		g1way = 0.0;
@@ -302,6 +302,12 @@ class lathe {
 			return true;
 		}
 		if (current.stopSource && previous.stopSource) {
+			return true;
+		}
+		if (!current.startSource && current.stopSource && previous.stopSource) {
+			return true;
+		}
+		if (current.startSource && !current.stopSource && previous.startSource) {
 			return true;
 		}
 
@@ -586,15 +592,16 @@ class lathe {
 	}
 	
 	void testBezier() {
-		int limit = 50;
+		int limit = 500;
 		
 		vector<point<T> > points;
 		
 		addPoint(true, 0, 0);
 		
-		points.push_back(point<T>(0.0, 10.0));
-		points.push_back(point<T>(60.0, 20.0));
-		points.push_back(point<T>(60.0, 0.0));
+		points.push_back(point<T>(0.0, 5.0));
+		points.push_back(point<T>(50.0, 5.0));
+		points.push_back(point<T>(80.0, 40.0));
+		points.push_back(point<T>(80.0, 0.0));
 
 		
 		for (int i = 0; i <= limit; i++) {
@@ -614,9 +621,15 @@ class lathe {
 	}
 	
 	void povRay(ostream& o) {
+		o << "#declare destination = union{" << endl;
 		for (unsigned int i = 0; i < dest.size()-1; i++) {
+			if (dest[i].z == dest[i+1].z) {
+				continue;
+			}
 			o << "cone {<0,0," << dest[i].z << ">, " << dest[i].x << ", <0,0," << dest[i+1].z << ">, " << dest[i+1].x << "}" << endl;
 		}
+		o << "}" << endl
+			<< "camera { location <" << maximum.z << ",0," << maximum.z/2.0  << ">" << endl << "look_at <0,0," << maximum.z/2.0  << ">}" << endl;
 	}
 	
 

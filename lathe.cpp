@@ -17,9 +17,9 @@ int main(void) {
 	*/
 	
 	test.addPoint(false, 0.0, 0.0);
-	test.addPoint(false, 0.0, 20.0);
-	test.addPoint(false, 80.0, 20.0);
-	test.addPoint(false, 80.0, 0.0);
+	test.addPoint(false, 0.0, 25.0);
+	test.addPoint(false, 120.0, 25.0);
+	test.addPoint(false, 120.0, 0.0);
 
 /*	
 	test.addPoint(true, 0.0, 0.0);
